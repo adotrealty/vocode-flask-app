@@ -3,7 +3,7 @@ import openai
 import os
 
 app = Flask(__name__)
-openai.api_key = os.environ.get("OPENAI_API_KEY")  # 记得在 Railway 配好环境变量
+openai.api_key = os.environ.get("OPENAI_API_KEY")  # 确保环境变量正确设置
 
 @app.route("/", methods=["GET"])
 def home():
@@ -14,15 +14,16 @@ def voice():
     user_input = request.form.get("SpeechResult") or request.form.get("Body") or "你好"
 
     try:
-        chat_reply = openai.chat.completions.create(
+        chat_reply = openai.ChatCompletion.create(  # ✅ 注意这里的写法
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "你是一个温和的中文语音助手"},
                 {"role": "user", "content": user_input}
             ]
         )
-        ai_text = chat_reply.choices[0].message.content
+        ai_text = chat_reply.choices[0].message["content"]
     except Exception as e:
+        print(f"OpenAI error: {e}")  # ✅ 这样你可以看到 Railway 日志中的具体错误
         ai_text = "很抱歉，我刚才好像出错了。"
 
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
