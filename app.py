@@ -15,14 +15,14 @@ def voice():
     user_input = "请你介绍一下你自己"
 
     try:
-        chat_reply = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "你是一个温和的中文语音助手"},
-                {"role": "user", "content": user_input}
-            ]
-        )
-        ai_text = chat_reply["choices"][0]["message"]["content"]
+    chat_reply = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "你是一个温和的中文语音助手"},
+            {"role": "user", "content": user_input}
+        ]
+    )
+    ai_text = chat_reply["choices"][0]["message"]["content"][:300]  # 👈 限制字符数
     except Exception as e:
         print(f"OpenAI error: {e}")
         ai_text = "很抱歉，我刚才好像出错了。"
