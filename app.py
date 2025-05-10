@@ -3,7 +3,7 @@ import openai
 import os
 
 app = Flask(__name__)
-openai.api_key = os.environ.get("OPENAI_API_KEY")  # 确保在 Railway 设置过环境变量
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def home():
@@ -13,19 +13,25 @@ def home():
 def voice():
     user_input = request.form.get("SpeechResult") or request.form.get("Body") or "你好"
 
-    try:
-        chat_reply = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "你是一个温和的中文语音助手"},
-                {"role": "user", "content": user_input}
-            ]
-        )
-        ai_text = chat_reply["choices"][0]["message"]["content"][:300]  # 截断300字符，防止Twilio播放中断
-        print(f"✅ AI回应：{ai_text}")
-    except Exception as e:
-        print(f"❌ OpenAI错误: {e}")
-        ai_text = "很抱歉，我刚才好像出错了。"
+    # 如果用户没说话，就先播一个开场白
+    if user_input.strip() == "你好":
+        ai_text = "你好，有什么可以帮助你的吗？"
+    else:
+        try:
+            chat_reply = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "你是一个温和的中文语音助手"},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=300,
+                temperature=0.6
+            )
+            ai_text = chat_reply["choices"][0]["message"]["content"][:300]  # 截断防止Twilio断播
+            print(f"✅ AI回应：{ai_text}")
+        except Exception as e:
+            print(f"❌ OpenAI错误: {e}")
+            ai_text = "很抱歉，我刚才好像出错了。"
 
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
