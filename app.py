@@ -11,7 +11,7 @@ def home():
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    user_input = request.form.get("SpeechResult") or request.form.get("Body") or "你好"
+    user_input = "请你介绍一下你自己"
 
     try:
         chat_reply = openai.ChatCompletion.create(  # ✅ 老版本 SDK 的正确调用方式
