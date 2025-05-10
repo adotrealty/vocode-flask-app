@@ -3,50 +3,48 @@ import openai
 import os
 
 app = Flask(__name__)
+
+# 获取 OpenAI 的 API Key
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def home():
-    return "English Voice AI is running."
+    return "Twilio AI Voice Assistant is running."
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    user_input = request.form.get("SpeechResult") or request.form.get("Body") or ""
-
-    if user_input.strip() == "":
-        # 第一次打进来，Twilio <Gather> 会播这句话并等待你说话
-        ai_text = "Hello, how can I help you today?"
-        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+    # Step 1: 如果还没有用户输入，则先欢迎并收集语音
+    speech_result = request.form.get("SpeechResult")
+    if not speech_result:
+        gather_twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" timeout="5" language="en-US">
-        <Say voice="Polly.Joanna" language="en-US">{ai_text}</Say>
+    <Say voice="Polly.Joanna">Hello, how can I help you today?</Say>
+    <Gather input="speech" timeout="5" speechTimeout="auto" action="/voice" method="POST">
+        <Say voice="Polly.Joanna">Please say something after the beep.</Say>
     </Gather>
-    <Say voice="Polly.Joanna" language="en-US">Sorry, I did not hear anything. Goodbye!</Say>
 </Response>"""
-        return Response(twiml_response, mimetype="text/xml")
+        return Response(gather_twiml, mimetype="text/xml")
 
-    else:
-        try:
-            chat_reply = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful and polite English-speaking voice assistant."},
-                    {"role": "user", "content": user_input}
-                ],
-                max_tokens=200,
-                temperature=0.6
-            )
-            ai_text = chat_reply["choices"][0]["message"]["content"][:300]  # 控制长度避免断播
-            print(f"✅ AI reply: {ai_text}")
-        except Exception as e:
-            print(f"❌ OpenAI error: {e}")
-            ai_text = "Sorry, something went wrong on my side."
+    # Step 2: 用户说完后，将其内容发送给 ChatGPT
+    try:
+        completion = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a friendly voice assistant."},
+                {"role": "user", "content": speech_result}
+            ]
+        )
+        reply = completion["choices"][0]["message"]["content"]
+    except Exception as e:
+        print("OpenAI error:", e)
+        reply = "Sorry, something went wrong when processing your request."
 
-        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+    # Step 3: 返回 AI 回复
+    response_twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna" language="en-US">{ai_text}</Say>
+    <Say voice="Polly.Joanna">{reply}</Say>
 </Response>"""
-        return Response(twiml_response, mimetype="text/xml")
+    return Response(response_twiml, mimetype="text/xml")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
