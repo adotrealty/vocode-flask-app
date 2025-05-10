@@ -9,5 +9,8 @@ def home():
 def voice():
     return "<?xml version='1.0' encoding='UTF-8'?><Response><Say>Hello from Vocode Flask on Railway!</Say></Response>", 200, {"Content-Type": "application/xml"}
 
+import os
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
