@@ -3,7 +3,7 @@ import openai
 import os
 
 app = Flask(__name__)
-openai.api_key = os.environ.get("OPENAI_API_KEY")  # Railway 环境变量已设置
+openai.api_key = os.environ.get("OPENAI_API_KEY")  # 确保在 Railway 设置过环境变量
 
 @app.route("/", methods=["GET"])
 def home():
@@ -11,20 +11,20 @@ def home():
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    # ✅ 固定输入一句测试内容，确保整条链路连通
-    user_input = "请你介绍一下你自己"
+    user_input = request.form.get("SpeechResult") or request.form.get("Body") or "你好"
 
     try:
-    chat_reply = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "你是一个温和的中文语音助手"},
-            {"role": "user", "content": user_input}
-        ]
-    )
-    ai_text = chat_reply["choices"][0]["message"]["content"][:300]  # 👈 限制字符数
+        chat_reply = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "你是一个温和的中文语音助手"},
+                {"role": "user", "content": user_input}
+            ]
+        )
+        ai_text = chat_reply["choices"][0]["message"]["content"][:300]  # 截断300字符，防止Twilio播放中断
+        print(f"✅ AI回应：{ai_text}")
     except Exception as e:
-        print(f"OpenAI error: {e}")
+        print(f"❌ OpenAI错误: {e}")
         ai_text = "很抱歉，我刚才好像出错了。"
 
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
