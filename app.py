@@ -4,57 +4,44 @@ import os
 
 app = Flask(__name__)
 
-# 读取 OpenAI 密钥
+# ✅ 从 Railway 环境变量中读取 OpenAI 密钥
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
-def home():
-    return "AI Voice Assistant is running."
+def index():
+    return "✅ Voice AI App is running."
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    # 初次进入语音系统，播放欢迎词并等待说话
-    twiml = """<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Gather input="speech" timeout="5" speechTimeout="auto" language="en-US" action="/process" method="POST">
-        <Say voice="Polly.Joanna">Hello, how can I help you today?</Say>
-    </Gather>
-    <Say voice="Polly.Joanna">Sorry, I didn't hear anything. Goodbye!</Say>
-</Response>"""
-    return Response(twiml, mimetype="text/xml")
+    # ✅ 尝试从 Twilio 识别结果中提取用户说的话
+    user_input = request.form.get("SpeechResult") or request.form.get("Body") or "你好"
 
-@app.route("/process", methods=["POST"])
-def process():
-    user_input = request.form.get("SpeechResult", "").strip()
-    print(f"[User said]: {user_input}")
+    print(f"[User Input]: {user_input}")  # ✅ 打印用户说了什么
 
-    if not user_input:
-        ai_text = "Sorry, I couldn't hear you."
-    else:
-        try:
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful and friendly voice assistant."},
-                    {"role": "user", "content": user_input}
-                ],
-                max_tokens=100,
-                temperature=0.7,
-                timeout=10
-            )
-            ai_text = completion.choices[0].message.content.strip()
-            print(f"[AI replied]: {ai_text}")
-        except Exception as e:
-            print(f"[OpenAI ERROR]: {e}")
-            ai_text = "Sorry, I ran into a problem."
+    try:
+        # ✅ 调用 OpenAI 进行回答
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a friendly AI voice assistant."},
+                {"role": "user", "content": user_input}
+            ],
+            max_tokens=100
+        )
+        ai_text = response.choices[0].message.content.strip()
+        print(f"[OpenAI Reply]: {ai_text}")  # ✅ 打印 AI 返回什么
 
+    except Exception as e:
+        print(f"[OpenAI ERROR]: {e}")  # ✅ 打印错误日志
+        ai_text = "Sorry, I ran into a problem."
+
+    # ✅ 返回 TwiML 响应
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">{ai_text}</Say>
-    <Redirect>/voice</Redirect>
+    <Say voice="Polly.Joanna" language="en-US">{ai_text}</Say>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5000))  # Railway 默认用 PORT 环境变量
     app.run(host="0.0.0.0", port=port)
