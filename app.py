@@ -2,48 +2,43 @@ from flask import Flask, request, Response
 
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def home():
+    return "Twilio Voice App is running."
+
+# 第一次接听电话：说 hello 并收集语音，超时后转 /ai
 @app.route("/voice", methods=["POST"])
 def voice():
     twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" timeout="3" language="en-US" action="/ai">
+  <Gather input="speech" timeout="5" language="en-US" action="/ai">
     <Say voice="Polly.Joanna">Hello, how can I help you?</Say>
   </Gather>
-  <Say voice="Polly.Joanna">I didn’t catch that. Goodbye!</Say>
+  <Say voice="Polly.Joanna">I didn't hear anything. Goodbye!</Say>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
-    try:
-        print("🎤 User said:", user_input)
+# 接收语音识别后的文本，简单回应
+@app.route("/ai", methods=["POST"])
+def ai():
+    user_input = request.form.get("SpeechResult") or "(No speech detected)"
+    print(f"User said: {user_input}")
 
-        # ChatGPT 回复，限制长度
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a friendly and concise AI voice assistant."},
-                {"role": "user", "content": user_input}
-            ],
-            max_tokens=100,
-            temperature=0.6
-        )
+    # 简单的固定回应逻辑
+    if "name" in user_input.lower():
+        response_text = "My name is Joanna, your AI assistant."
+    elif "weather" in user_input.lower():
+        response_text = "I'm sorry, I don't have weather data right now."
+    else:
+        response_text = "I heard you say: " + user_input
 
-        full_reply = completion["choices"][0]["message"]["content"]
-        short_reply = full_reply.strip().split(".")[0] + "."  # 截取第一句话
-        print("🤖 AI reply:", short_reply)
-
-    except Exception as e:
-        print("OpenAI error:", e)
-        short_reply = "Sorry, something went wrong."
-
-    # 播放回应前加提示，减少冷场
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Let me answer that.</Say>
-  <Pause length="1"/>
-  <Say voice="Polly.Joanna">{short_reply}</Say>
+  <Say voice="Polly.Joanna">{response_text}</Say>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
