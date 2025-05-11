@@ -4,39 +4,30 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Twilio Voice App is running."
+    return "Simple Twilio Voice App Running"
 
-# 第一次接听电话：说 hello 并收集语音，超时后转 /ai
 @app.route("/voice", methods=["POST"])
 def voice():
+    # 返回语音识别接口
     twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" timeout="5" language="en-US" action="/ai">
-    <Say voice="Polly.Joanna">Hello, how can I help you?</Say>
-  </Gather>
-  <Say voice="Polly.Joanna">I didn't hear anything. Goodbye!</Say>
+    <Gather input="speech dtmf" timeout="5" language="en-US" action="/ai">
+        <Say voice="Polly.Joanna">Hello, how can I help you?</Say>
+    </Gather>
+    <Say voice="Polly.Joanna">I didn't catch that. Goodbye!</Say>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
-# 接收语音识别后的文本，简单回应
 @app.route("/ai", methods=["POST"])
 def ai():
-    user_input = request.form.get("SpeechResult") or "(No speech detected)"
-    print(f"User said: {user_input}")
-
-    # 简单的固定回应逻辑
-    if "name" in user_input.lower():
-        response_text = "My name is Joanna, your AI assistant."
-    elif "weather" in user_input.lower():
-        response_text = "I'm sorry, I don't have weather data right now."
-    else:
-        response_text = "I heard you say: " + user_input
-
-    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    # 这里只返回静态内容
+    user_input = request.form.get("SpeechResult") or "Nothing heard"
+    print("User said:", user_input)  # 可在 Railway logs 中看到
+    response_twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">{response_text}</Say>
+    <Say voice="Polly.Joanna">You said: {user_input}</Say>
 </Response>"""
-    return Response(twiml, mimetype="text/xml")
+    return Response(response_twiml, mimetype="text/xml")
 
 if __name__ == "__main__":
     import os
