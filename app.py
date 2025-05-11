@@ -1,35 +1,53 @@
 from flask import Flask, request, Response
+import openai
+import os
 
 app = Flask(__name__)
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Simple Twilio Voice App Running"
+    return "AI Voice Assistant is running."
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    # 返回语音识别接口
-    twiml = """<?xml version="1.0" encoding="UTF-8"?>
+    # 获取用户语音输入
+    user_input = request.form.get("SpeechResult") or request.form.get("Body") or ""
+
+    if user_input.strip() == "":
+        # 用户没说话，或第一次进入通话
+        twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech dtmf" timeout="5" language="en-US" action="/ai">
-        <Say voice="Polly.Joanna">Hello, how can I help you?</Say>
+    <Gather input="speech" timeout="5" language="en-US">
+        <Say>Hello, how can I help you today?</Say>
     </Gather>
-    <Say voice="Polly.Joanna">I didn't catch that. Goodbye!</Say>
+    <Say>I didn’t catch that. Let’s try again.</Say>
+    <Redirect>/voice</Redirect>
+</Response>"""
+        return Response(twiml, mimetype="text/xml")
+
+    try:
+        # 调用 OpenAI 获取回复
+        completion = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI voice assistant."},
+                {"role": "user", "content": user_input}
+            ]
+        )
+        ai_text = completion["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"OpenAI error: {e}")
+        ai_text = "Sorry, I ran into a problem."
+
+    # 构造 TwiML 响应，并继续对话
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say>{ai_text}</Say>
+    <Redirect>/voice</Redirect>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
-@app.route("/ai", methods=["POST"])
-def ai():
-    # 这里只返回静态内容
-    user_input = request.form.get("SpeechResult") or "Nothing heard"
-    print("User said:", user_input)  # 可在 Railway logs 中看到
-    response_twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="Polly.Joanna">You said: {user_input}</Say>
-</Response>"""
-    return Response(response_twiml, mimetype="text/xml")
-
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
