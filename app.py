@@ -1,28 +1,17 @@
 from flask import Flask, request, Response
-import openai
-import os
 
 app = Flask(__name__)
-openai.api_key = os.environ.get("OPENAI_API_KEY")
-
-@app.route("/", methods=["GET"])
-def home():
-    return "Twilio AI Voice Assistant is running."
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    user_input = request.form.get("SpeechResult")
-
-    if not user_input:
-        # 第一次通话，引导语音输入
-        twiml = """<?xml version="1.0" encoding="UTF-8"?>
+    twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" timeout="3" language="en-US">
+  <Gather input="speech" timeout="3" language="en-US" action="/ai">
     <Say voice="Polly.Joanna">Hello, how can I help you?</Say>
   </Gather>
   <Say voice="Polly.Joanna">I didn’t catch that. Goodbye!</Say>
 </Response>"""
-        return Response(twiml, mimetype="text/xml")
+    return Response(twiml, mimetype="text/xml")
 
     try:
         print("🎤 User said:", user_input)
