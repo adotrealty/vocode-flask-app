@@ -5,30 +5,23 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
-    return "✅ Voice Assistant Running"
+    return "AI Voice Assistant is running."
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    user_input = request.values.get("SpeechResult", "").strip()
+    user_input = request.form.get("SpeechResult") or request.form.get("Body") or "Hello"
 
-    if not user_input:
-        # Twilio 听不清或无语音输入
-        response = """<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="Polly.Joanna">I didn’t catch that. Please say that again.</Say>
-    <Redirect>/voice</Redirect>
-</Response>"""
-        return Response(response, mimetype="text/xml")
-
-    ai_response = ask_openai(user_input)
+    try:
+        ai_text = ask_openai(user_input)
+    except Exception as e:
+        print(f"OpenAI Error: {e}")
+        ai_text = "Sorry, I ran into a problem."
 
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">{ai_response}</Say>
-    <Pause length="1" />
-    <Redirect>/voice</Redirect>
+    <Say voice="Polly.Joanna" language="en-US">{ai_text}</Say>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
