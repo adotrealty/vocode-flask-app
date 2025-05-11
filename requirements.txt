@@ -1,2 +1,2 @@
-flask
+flask==2.3.3
 openai==0.27.8
