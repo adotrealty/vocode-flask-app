@@ -9,11 +9,11 @@ def ask_openai(user_input):
             model="gpt-3.5-turbo",
             timeout=10,
             messages=[
-                {"role": "system", "content": "You are a friendly voice assistant"},
+                {"role": "system", "content": "You are a helpful AI assistant."},
                 {"role": "user", "content": user_input}
             ]
         )
         return response["choices"][0]["message"]["content"]
     except Exception as e:
-        print(f"OpenAI Error: {e}")
+        print("OpenAI error:", e)
         return "Sorry, I ran into a problem."
