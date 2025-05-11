@@ -2,17 +2,20 @@ from flask import Flask, request, Response
 
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def home():
+    return "Voice app is running."
+
 @app.route("/voice", methods=["POST"])
 def voice():
-    # TwiML with <Gather> to wait for user's voice input
+    # 直接返回合法的 TwiML XML 响应
     twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" timeout="5" language="en-US">
-        <Say voice="Polly.Joanna">Hello, how can I help you?</Say>
-    </Gather>
-    <Say voice="Polly.Joanna">Sorry, I didn't catch that. Goodbye!</Say>
+    <Say voice="Polly.Joanna" language="en-US">Hello, how can I help you today?</Say>
 </Response>"""
     return Response(twiml, mimetype="text/xml")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
